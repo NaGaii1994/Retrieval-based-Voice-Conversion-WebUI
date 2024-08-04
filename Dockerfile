@@ -6,8 +6,6 @@ EXPOSE 7865
 
 WORKDIR /app
 
-COPY . .
-
 # Install dependenceis to add PPAs
 RUN apt-get update && \
     apt-get install -y -qq ffmpeg aria2 && apt clean && \
@@ -15,20 +13,22 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Add the deadsnakes PPA to get Python 3.9
+# Add the deadsnakes PPA to get Python 3.10
 RUN add-apt-repository ppa:deadsnakes/ppa
 
-# Install Python 3.9 and pip
+# Install Python 3.10 and pip
 RUN apt-get update && \
-    apt-get install -y build-essential python-dev python3-dev python3.9-distutils python3.9-dev python3.9 curl && \
+    apt-get install -y build-essential python3.10-dev python3.10 curl && \
     apt-get clean && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 && \
-    curl https://bootstrap.pypa.io/get-pip.py | python3.9
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 && \
+    curl -sSL https://install.python-poetry.org | python3.10 -
 
-# Set Python 3.9 as the default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1
+ENV PATH=/root/.local/bin:$PATH
 
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN poetry config virtualenvs.create false && \
+    poetry install
 
 RUN aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/D40k.pth -d assets/pretrained_v2/ -o D40k.pth
 RUN aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/G40k.pth -d assets/pretrained_v2/ -o G40k.pth
